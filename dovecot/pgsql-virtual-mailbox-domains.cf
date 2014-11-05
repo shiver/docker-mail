@@ -1,0 +1,4 @@
+user = dockermail
+hosts = postgres
+dbname = dockermail
+query = SELECT 1 FROM virtual_domains where name = '%s'
