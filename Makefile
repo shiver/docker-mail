@@ -1,5 +1,7 @@
-.PHONY: build run run-dovecot run-postgres build-postgres build-dovecot \
-		stop-postgres psql-postgres build-roundcube
+.PHONY: build run stop \
+		run-dovecot stop-dovecot build-dovecot \
+		run-postgres stop-postgres build-postgres psql-postgres \
+		run-roundcube stop-roundcube build-roundcube
 
 HOST_DIR = /srv/docker-mail
 BUILD = production
@@ -16,7 +18,11 @@ RC_IMG = roundcube:1.0.3
 RC_NAME := dockermail-roundcube-$(BUILD)
 RC_VOLUME := $(HOST_DIR)/roundcube:/var/lib/roundcube
 
-build: build-postgres build-dovecot
+build: build-postgres build-dovecot build-roundcube
+
+run: run-postgres run-dovecot run-roundcube
+
+stop: stop-roundcube stop-dovecot stop-postgres
 
 postgres-init-db:
 	@echo "CREATE ROLE dockermail LOGIN; CREATE DATABASE dockermail WITH OWNER dockermail TEMPLATE template0 ENCODING 'UTF8';" | \
@@ -62,6 +68,9 @@ stop-postgres:
 build-dovecot:
 	@cd dovecot; docker build -t $(DC_IMG) .
 
+stop-dovecot:
+	@docker stop $(DC_NAME)
+
 run-dovecot:
 	@if [[ $$(docker ps -a | grep "$(DC_NAME)" | awk '{print $$(NF)}') == "$(DC_NAME)" ]]; then \
 		docker start $(DC_NAME); \
@@ -81,4 +90,7 @@ run-roundcube:
 				   --link $(DC_NAME):dovecot \
 				   -v $(RC_VOLUME) --name $(RC_NAME) $(RC_IMG); \
 	fi
+
+stop-roundcube:
+	@docker stop $(RC_NAME)
 
