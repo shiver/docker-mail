@@ -13,6 +13,10 @@ RUN apt-get update \
     && apt-get install -y \
         dovecot-core dovecot-imapd dovecot-lmtpd dovecot-pgsql
 
+# Install postfix
+RUN apt-get update \
+    && apt-get install -y postfix postfix-pgsql
+
 # Push updated dovecot configuration
 ADD ./dovecot.conf /etc/dovecot/dovecot.conf
 ADD ./dovecot-sql.conf.ext /etc/dovecot/dovecot-sql.conf.ext
@@ -20,6 +24,8 @@ ADD ./10-mail.conf /etc/dovecot/conf.d/10-mail.conf
 ADD ./10-auth.conf /etc/dovecot/conf.d/10-auth.conf
 ADD ./10-master.conf /etc/dovecot/conf.d/10-master.conf
 ADD ./10-ssl.conf /etc/dovecot/conf.d/10-ssl.conf
+ADD ./15-lda.conf /etc/dovecot/conf.d/15-lda.conf
+ADD ./auth-sql.conf.ext /etc/dovecot/conf.d/auth-sql.conf.ext
 
 # Create virtual domains and assign permissions
 ## TODO: Make this configurable
@@ -31,10 +37,7 @@ RUN chown -R vmail:vmail /var/mail
 RUN chown -R vmail:dovecot /etc/dovecot
 RUN chmod -R o-rwx /etc/dovecot
 
-# Install postfix
-RUN apt-get update \
-    && apt-get install -y postfix postfix-pgsql
-
+# Push postfix configuration
 ADD ./postfix-main.cf /etc/postfix/main.cf
 ADD ./postfix-master.cf /etc/postfix/master.cf
 ADD ./pgsql-virtual-mailbox-domains.cf /etc/postfix/pgsql-virtual-mailbox-domains.cf

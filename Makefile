@@ -1,5 +1,5 @@
 .PHONY: build run run-dovecot run-postgres build-postgres build-dovecot \
-		stop-postgres psql-postgres
+		stop-postgres psql-postgres build-roundcube
 
 HOST_DIR = /srv/docker-mail
 BUILD = production
@@ -11,6 +11,10 @@ DC_VOLUME := $(HOST_DIR)/dovecot/vmail:/srv/vmail
 PG_IMG = postgres:9.3
 PG_NAME := dockermail-postgres-$(BUILD)
 PG_VOLUME := $(HOST_DIR)/postgresql/data:/var/lib/postgresql/data
+
+RC_IMG = roundcube:1.0.3
+RC_NAME := dockermail-roundcube-$(BUILD)
+RC_VOLUME := $(HOST_DIR)/roundcube:/var/lib/roundcube
 
 build: build-postgres build-dovecot
 
@@ -63,6 +67,18 @@ run-dovecot:
 		docker start $(DC_NAME); \
 	else \
 		docker run -d -p 25:25 -p 587:587 -p 993:993 --link $(PG_NAME):postgres \
-			   -v $(DC_VOLUME) --name $(DC_NAME) $(DC_IMG); \
+			   	   --name $(DC_NAME) $(DC_IMG); \
+	fi
+
+build-roundcube: 
+	@cd roundcube; docker build -t $(RC_IMG) .
+
+run-roundcube:
+	@if [[ $$(docker ps -a | grep "$(RC_NAME)" | awk '{print $$(NF)}') == "$(RC_NAME)" ]]; then \
+		docker start $(RC_NAME); \
+	else \
+		docker run -d -p 80:80 -p 443:443 --link $(PG_NAME):postgres \
+				   --link $(DC_NAME):dovecot \
+				   -v $(RC_VOLUME) --name $(RC_NAME) $(RC_IMG); \
 	fi
 
