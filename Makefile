@@ -1,14 +1,15 @@
-.PHONY: build run stop \
+.PHONY: build run stop clean \
 		run-dovecot stop-dovecot build-dovecot \
 		run-postgres stop-postgres build-postgres psql-postgres \
 		run-roundcube stop-roundcube build-roundcube
 
+SHELL := /bin/bash
 HOST_DIR = /srv/docker-mail
 BUILD = production
 
 DC_IMG := dovecot:latest
 DC_NAME := dockermail-dovecot-$(BUILD)
-DC_VOLUME := $(HOST_DIR)/dovecot/vmail:/srv/vmail
+DC_VOLUME := $(HOST_DIR)/dovecot/vmail:/var/mail
 
 PG_IMG = postgres:9.3
 PG_NAME := dockermail-postgres-$(BUILD)
@@ -23,6 +24,17 @@ build: build-postgres build-dovecot build-roundcube
 run: run-postgres run-dovecot run-roundcube
 
 stop: stop-roundcube stop-dovecot stop-postgres
+
+clean: clean-roundcube clean-dovecot clean-postgres
+
+clean-roundcube:
+	@docker rm $(RC_NAME)
+
+clean-dovecot:
+	@docker rm $(DC_NAME)
+
+clean-postgres:
+	@docker rm $(PG_NAME)
 
 postgres-init-db:
 	@echo "CREATE ROLE dockermail LOGIN; CREATE DATABASE dockermail WITH OWNER dockermail TEMPLATE template0 ENCODING 'UTF8';" | \
@@ -76,6 +88,7 @@ run-dovecot:
 		docker start $(DC_NAME); \
 	else \
 		docker run -d -p 25:25 -p 587:587 -p 993:993 --link $(PG_NAME):postgres \
+				   -v $(DC_VOLUME) \
 			   	   --name $(DC_NAME) $(DC_IMG); \
 	fi
 

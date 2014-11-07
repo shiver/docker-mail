@@ -27,13 +27,8 @@ ADD ./10-ssl.conf /etc/dovecot/conf.d/10-ssl.conf
 ADD ./15-lda.conf /etc/dovecot/conf.d/15-lda.conf
 ADD ./auth-sql.conf.ext /etc/dovecot/conf.d/auth-sql.conf.ext
 
-# Create virtual domains and assign permissions
-## TODO: Make this configurable
-RUN mkdir -p /var/mail/vhosts/example.com
-
 RUN groupadd -g 5000 vmail
 RUN useradd -g vmail -u 5000 vmail -d /var/mail
-RUN chown -R vmail:vmail /var/mail
 RUN chown -R vmail:dovecot /etc/dovecot
 RUN chmod -R o-rwx /etc/dovecot
 
@@ -47,9 +42,10 @@ ADD ./pgsql-virtual-alias-maps.cf /etc/postfix/pgsql-virtual-alias-maps.cf
 # We need syslog because that is where dovecot puts everything
 RUN apt-get update && apt-get install -y rsyslog
 
+VOLUME ["/var/mail"]
 EXPOSE 993
 EXPOSE 587
 EXPOSE 25
 
 # TODO: Managed processes with supervisor and redirect logs to stdout
-ENTRYPOINT service rsyslog start; service postfix start; dovecot -F
+ENTRYPOINT chown -R vmail:vmail /var/mail; service rsyslog start; service postfix start; dovecot -F
