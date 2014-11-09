@@ -36,6 +36,39 @@ clean-dovecot:
 clean-postgres:
 	@docker rm $(PG_NAME)
 
+add-domain:
+	@echo "INSERT INTO virtual_domains(name) VALUES('$(DOMAIN)');" | \
+		docker run \
+			--rm \
+			--interactive \
+			--link $(PG_NAME):postgres \
+			--entrypoint=\"\" \
+			-v $(PG_VOLUME) \
+			$(PG_IMG) \
+			bash -c 'exec psql -h postgres -U dockermail -d dockermail'
+
+add-user:
+	@echo "INSERT INTO virtual_users(domain_id, password, email) SELECT id, '$(PASSWD)', '$(EMAIL)' FROM virtual_domains WHERE name='$(DOMAIN)';" | \
+		docker run \
+			--rm \
+			--interactive \
+			--link $(PG_NAME):postgres \
+			--entrypoint=\"\" \
+			-v $(PG_VOLUME) \
+			$(PG_IMG) \
+			bash -c 'exec psql -h postgres -U dockermail -d dockermail'
+
+add-alias:
+	@echo "INSERT INTO virtual_aliases(domain_id, source, destination) SELECT id, '$(ALIAS)', '$(EMAIL)' FROM virtual_domains WHERE name='$(DOMAIN)';" | \
+		docker run \
+			--rm \
+			--interactive \
+			--link $(PG_NAME):postgres \
+			--entrypoint=\"\" \
+			-v $(PG_VOLUME) \
+			$(PG_IMG) \
+			bash -c 'exec psql -h postgres -U dockermail -d dockermail'
+
 postgres-init-db:
 	@echo "CREATE ROLE dockermail LOGIN; CREATE DATABASE dockermail WITH OWNER dockermail TEMPLATE template0 ENCODING 'UTF8';" | \
 		docker run \
